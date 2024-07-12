@@ -14,16 +14,26 @@ COMPRESSED_FOLDER = 'compressed/'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(COMPRESSED_FOLDER, exist_ok=True)
 
+MAX_FILES = 100
+MAX_SIZE = 0.5 * 1024 * 1024 * 1024  # 0.5 GB in bytes
+
 @app.route('/')
 def home():
     return render_template('index.html')
 
-@app.route('/compress', methods=['POST'])
+@app.route('/compress', methods=['GET', 'POST'])
 def compress_images():
     try:
         files = request.files.getlist('files')
-        quality = int(request.form.get('quality', 75))  # Default quality to 75 if not provided
-        resolution = int(request.form.get('resolution', 100))  # Default resolution to 100% if not provided
+        quality = int(request.form.get('quality', 30))  # Default quality to 30 if not provided
+        resolution = int(request.form.get('resolution', 50))  # Default resolution to 50% if not provided
+
+        if len(files) > MAX_FILES:
+            return 'Too many files. Maximum allowed is 100.', 400
+
+        total_size = sum(file.content_length for file in files)
+        if total_size > MAX_SIZE:
+            return 'Total file size exceeds the limit of 0.5 GB.', 400
 
         compressed_io = io.BytesIO()
         with zipfile.ZipFile(compressed_io, 'w') as zf:
